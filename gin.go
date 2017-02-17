@@ -11,6 +11,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/DataDog/datadog-go/statsd"
+	"github.com/RAMichel/endless"
 	"github.com/gin-gonic/gin/render"
 )
 
@@ -227,6 +229,16 @@ func (engine *Engine) Run(addr ...string) (err error) {
 	return
 }
 
+// RunDog attaches the router to a http.Server and then attaches a DDog Client to our Listener
+func (engine *Engine) SeeSpotRun(d *statsd.Client, addr ...string) (err error) {
+	defer func() { debugPrintError(err) }()
+
+	address := resolveAddress(addr)
+	debugPrint("Listening and serving HTTP on %s\n", address)
+	err = endless.ListenAndPlayWithDog(address, engine, d)
+	return
+}
+
 // RunTLS attaches the router to a http.Server and starts listening and serving HTTPS (secure) requests.
 // It is a shortcut for http.ListenAndServeTLS(addr, certFile, keyFile, router)
 // Note: this method will block the calling goroutine indefinitely unless an error happens.
@@ -234,7 +246,7 @@ func (engine *Engine) RunTLS(addr string, certFile string, keyFile string) (err 
 	debugPrint("Listening and serving HTTPS on %s\n", addr)
 	defer func() { debugPrintError(err) }()
 
-	err = http.ListenAndServeTLS(addr, certFile, keyFile, engine)
+	err = endless.ListenAndServeTLS(addr, certFile, keyFile, engine)
 	return
 }
 
